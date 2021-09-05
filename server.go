@@ -1,7 +1,3 @@
-// Copyright 2009 The Go Authors. All rights reserved.
-// Use of this source code is governed by a BSD-style
-// license that can be found in the LICENSE file.
-
 package geerpc
 
 import (
@@ -19,7 +15,7 @@ import (
 const MagicNumber = 0x3bef5c
 
 type Option struct {
-	MagicNumber int        // MagicNumber marks this's a geerpc request
+	MagicNumber int        // MagicNumber marks this's a rpc request
 	CodecType   codec.Type // client may choose different Codec to encode body
 }
 
