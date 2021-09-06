@@ -9,15 +9,16 @@ import (
 	"log"
 	"net"
 	"sync"
+	"time"
 )
 
 type Call struct {
-	Seq uint64
+	Seq           uint64
 	ServiceMethod string
-	Args interface{}
-	Reply interface{}
-	Error error
-	Done chan *Call
+	Args          interface{}
+	Reply         interface{}
+	Error         error
+	Done          chan *Call
 }
 
 // 为了支持异步调用我们这里加上了通道Done
@@ -28,13 +29,13 @@ func (call *Call) done() {
 
 type Client struct {
 	// 消息的编解码器，和服务端类似，用来序列化将要发送出去的请求，以及反序列化接收到的响应
-	cc codec.Codec
+	cc  codec.Codec
 	opt *Option
 	// 一个互斥锁，和服务端类似，为了保证请求的有序发送，即防止出现多个请求报文混淆
 	sending sync.Mutex
 	// 1个请求的消息头，header 只有在请求发送时才需要，而请求发送是互斥的，因此每个客户端只需要一个，声明在 Client 结构体中可以复用
 	header codec.Header
-	mu sync.Mutex
+	mu     sync.Mutex
 	// seq 用于给发送的请求编号，每个请求拥有唯一编号
 	seq uint64
 	// pending 存储未处理完的请求，键是编号，值是 Call 实例
@@ -42,14 +43,58 @@ type Client struct {
 	/**
 	closing 和 shutdown 任意一个值置为 true，则表示 Client 处于不可用的状态，但有些许的差别，closing 是用户主动关闭的，
 	即调用 Close 方法，而 shutdown 置为 true 一般是有错误发生。
-	 */
-	closing bool  // user has called Close
+	*/
+	closing  bool // user has called Close
 	shutdown bool // server to told us to stop
+}
+
+type clientResult struct {
+	client *Client
+	err    error
 }
 
 var _ io.Closer = (*Client)(nil)
 
 var ErrShutdown = errors.New("Connection is shutting down!\n")
+
+type newClientFunc func(conn net.Conn, opt *Option) (client *Client, err error)
+
+func dialTimeout(f newClientFunc, network, address string, opts ...*Option) (client *Client, er error) {
+	opt, err := parseOptions(opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	conn, err := net.DialTimeout(network, address, opt.ConnectTimeout)
+	if err != nil {
+		return nil, err
+	}
+	// close the client if client is nil
+	defer func() {
+		if err != nil {
+			_ = conn.Close()
+		}
+	}()
+	ch := make(chan clientResult)
+	go func() {
+		client, err := f(conn, opt)
+		ch <- clientResult{
+			client: client,
+			err:    err,
+		}
+	}()
+
+	if opt.ConnectTimeout == 0 {
+		result := <-ch
+		return result.client, result.err
+	}
+	select {
+	case <-time.After(opt.ConnectTimeout):
+		return nil, fmt.Errorf("rpc client: connect timeout: expect within %s", opt.ConnectTimeout)
+	case result := <-ch:
+		return result.client, result.err
+	}
+}
 
 func (client *Client) Close() error {
 	client.mu.Lock()
@@ -66,6 +111,7 @@ func (client *Client) IsAvailable() bool {
 	defer client.mu.Unlock()
 	return !client.shutdown && !client.closing
 }
+
 // 将参数 call 添加到 client.pending 中，并更新 client.seq
 func (client *Client) registerCall(call *Call) (uint64, error) {
 	client.mu.Lock()
@@ -160,7 +206,6 @@ func (client *Client) receive() {
 	client.terminateCalls(err)
 }
 
-
 // Go 异步调用
 // Go invokes the function asynchronously.
 // It returns the Call structure representing the invocation.
@@ -204,8 +249,6 @@ func NewClient(conn net.Conn, opt *Option) (*Client, error) {
 	return newClientCodec(f(conn), opt), nil
 }
 
-
-
 func newClientCodec(cc codec.Codec, opt *Option) *Client {
 	client := &Client{
 		seq:     1, // seq starts with 1, 0 means invalid call
@@ -235,19 +278,5 @@ func parseOptions(opts ...*Option) (*Option, error) {
 
 // Dial connects to an RPC server at the specified network address
 func Dial(network, address string, opts ...*Option) (client *Client, err error) {
-	opt, err := parseOptions(opts...)
-	if err != nil {
-		return nil, err
-	}
-	conn, err := net.Dial(network, address)
-	if err != nil {
-		return nil, err
-	}
-	// close the connection if client is nil
-	defer func() {
-		if client == nil {
-			_ = conn.Close()
-		}
-	}()
-	return NewClient(conn, opt)
+	return dialTimeout(NewClient, network, address, opts...)
 }
