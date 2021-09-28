@@ -1,3 +1,4 @@
+// json编码，待实现
 package codec
 
 import (
@@ -12,3 +13,13 @@ type JsonCodec struct {
 	dec *json.Decoder
 	enc *json.Encoder
 }
+
+func (j *JsonCodec) Close() error {
+	return j.conn.Close()
+}
+
+func (j *JsonCodec) ReadHeader(header *Header) error  {
+	return j.dec.Decode(header)
+}
+
+

@@ -1,3 +1,4 @@
+// 服务注册
 package registry
 
 import (
@@ -103,6 +104,7 @@ func Heartbeat(registry, addr string, duration time.Duration) {
 	}()
 }
 
+// 发送心跳包
 func sendHeartbeat(registry, addr string) error {
 	log.Println(addr, "send heart beat to registry", registry)
 	httpClient := &http.Client{}

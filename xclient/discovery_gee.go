@@ -1,3 +1,4 @@
+// 默认的服务发现程序
 package xclient
 
 import (
