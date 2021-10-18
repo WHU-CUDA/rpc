@@ -25,28 +25,25 @@ type Call struct {
 	Done          chan *Call
 }
 
-// 为了支持异步调用我们这里加上了通道Done
-// 这样我们调用完成会回调call.done()通知调用方
+// In order to support asynchronous calls, we add channels "Done" here
+// In this way, we will call back call.Done () to notify the caller when the call is completed
 func (call *Call) done() {
 	call.Done <- call
 }
 
 type Client struct {
-	// 消息的编解码器，和服务端类似，用来序列化将要发送出去的请求，以及反序列化接收到的响应
-	cc  codec.Codec
-	opt *Option
-	// 一个互斥锁，和服务端类似，为了保证请求的有序发送，即防止出现多个请求报文混淆
+	cc      codec.Codec
+	opt     *Option
 	sending sync.Mutex
-	// 1个请求的消息头，header 只有在请求发送时才需要，而请求发送是互斥的，因此每个客户端只需要一个，声明在 Client 结构体中可以复用
-	header codec.Header
-	mu     sync.Mutex
-	// seq 用于给发送的请求编号，每个请求拥有唯一编号
+	header  codec.Header
+	mu      sync.Mutex
+	// seq，every request has unique seq
 	seq uint64
-	// pending 存储未处理完的请求，键是编号，值是 Call 实例
+	// pending storage the unfinish request，key is seq number，value is  Call instance
 	pending map[uint64]*Call
 	/**
-	closing 和 shutdown 任意一个值置为 true，则表示 Client 处于不可用的状态，但有些许的差别，closing 是用户主动关闭的，
-	即调用 Close 方法，而 shutdown 置为 true 一般是有错误发生。
+	set closing and shutdown anyone as true，stand for Client is unhealth，but，closing is close by user，
+	call Close method，and shutdown is true also error occurred。
 	*/
 	closing  bool // user has called Close
 	shutdown bool // server to told us to stop
@@ -116,7 +113,7 @@ func (client *Client) IsAvailable() bool {
 	return !client.shutdown && !client.closing
 }
 
-// 将参数 call 添加到 client.pending 中，并更新 client.seq
+// add call into client.pending and update client.seq
 func (client *Client) registerCall(call *Call) (uint64, error) {
 	client.mu.Lock()
 	defer client.mu.Unlock()
@@ -129,7 +126,7 @@ func (client *Client) registerCall(call *Call) (uint64, error) {
 	return call.Seq, nil
 }
 
-// 根据 seq，从 client.pending 中移除对应的 call，并返回。
+// remove call in client.pending by seq
 func (client *Client) removeCall(seq uint64) *Call {
 	client.mu.Lock()
 	defer client.mu.Unlock()
@@ -138,7 +135,7 @@ func (client *Client) removeCall(seq uint64) *Call {
 	return call
 }
 
-// 服务端或客户端发生错误时调用，将 shutdown 设置为 true，且将错误信息通知所有 pending 状态的 call
+// When the server or client error, turn shutdown as true and notify the error message to all pending call
 func (client *Client) terminateCalls(err error) {
 	client.sending.Lock()
 	defer client.sending.Unlock()

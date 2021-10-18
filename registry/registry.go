@@ -1,4 +1,4 @@
-// 服务注册
+// To the service registry
 package registry
 
 import (

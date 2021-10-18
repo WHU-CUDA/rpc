@@ -3,12 +3,12 @@ package codec
 import "io"
 
 type Header struct {
-	ServiceMethod string // 服务名和方法名，通常与 Go 语言中的结构体和方法相映射。
-	Seq uint64 // 请求的序号，也可以认为是某个请求的 ID，用来区分不同的请求
-	Error string // 错误信息，客户端置为空，服务端如果如果发生错误，将错误信息置于 Error 中
+	ServiceMethod string // ex: ServiceName.MethodName
+	Seq           uint64 // the sequence number of the request, to classfiy different requests.
+	Error         string // Error message, client is empty, if server has error,put Error.ErrorMessage into this.
 }
 
-// Codec 消息体编解码接口
+// Codec encode and decode interface
 // for the different codec implements
 type Codec interface {
 	io.Closer
@@ -17,14 +17,13 @@ type Codec interface {
 	Write(*Header, interface{}) error
 }
 
-
 type NewCodecFunc func(io.ReadWriteCloser) Codec
 
-// Type 通过类型可以获得不同得消息编解码得构造方法
+// Type across different Type get different constructor
 type Type string
 
 const (
-	GobType Type = "application/gob"
+	GobType  Type = "application/gob"
 	JsonType Type = "application/json"
 )
 

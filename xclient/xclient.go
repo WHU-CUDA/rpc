@@ -1,3 +1,4 @@
+// High performance client, use multi thread
 package xclient
 
 import (
