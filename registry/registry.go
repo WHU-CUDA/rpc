@@ -104,7 +104,7 @@ func Heartbeat(registry, addr string, duration time.Duration) {
 	}()
 }
 
-// 发送心跳包
+// send heart beat package
 func sendHeartbeat(registry, addr string) error {
 	log.Println(addr, "send heart beat to registry", registry)
 	httpClient := &http.Client{}
