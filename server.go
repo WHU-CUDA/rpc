@@ -17,12 +17,7 @@ import (
 
 const MagicNumber = 0x3bef5c
 
-/*
-| Option{MagicNumber: xxx, CodecType: xxx} | Header{ServiceMethod ...} | Body interface{} |
-| <------      固定 JSON 编码      ------>  | <-------   编码方式由 CodeType 决定   ------->|
-在一次连接中，Option 固定在报文的最开始，Header 和 Body 可以有多个，即报文可能是这样的。
-| Option | Header1 | Body1 | Header2 | Body2 | ...
-*/
+// Option /*
 type Option struct {
 	MagicNumber    int           // MagicNumber marks this's a wangxsrpc request
 	CodecType      codec.Type    // client may choose different Codec to encode body
