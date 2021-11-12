@@ -1,10 +1,9 @@
-package geerpc
+package wangxsrpc
 
 import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"geerpc/codec"
 	"io"
 	"log"
 	"net"
@@ -13,9 +12,11 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"wangxsrpc/codec"
 )
 
 const MagicNumber = 0x3bef5c
+
 /*
 | Option{MagicNumber: xxx, CodecType: xxx} | Header{ServiceMethod ...} | Body interface{} |
 | <------      固定 JSON 编码      ------>  | <-------   编码方式由 CodeType 决定   ------->|
@@ -23,7 +24,7 @@ const MagicNumber = 0x3bef5c
 | Option | Header1 | Body1 | Header2 | Body2 | ...
 */
 type Option struct {
-	MagicNumber    int           // MagicNumber marks this's a geerpc request
+	MagicNumber    int           // MagicNumber marks this's a wangxsrpc request
 	CodecType      codec.Type    // client may choose different Codec to encode body
 	ConnectTimeout time.Duration // 0 means no limit
 	HandleTimeout  time.Duration
@@ -230,9 +231,9 @@ func (server *Server) Register(rcvr interface{}) error {
 func Register(rcvr interface{}) error { return DefaultServer.Register(rcvr) }
 
 const (
-	connected        = "200 Connected to Gee RPC"
-	defaultRPCPath   = "/_geeprc_"
-	defaultDebugPath = "/debug/geerpc"
+	connected        = "200 Connected to wangxs RPC"
+	defaultRPCPath   = "/_wangxsprc_"
+	defaultDebugPath = "/debug/wangxsrpc"
 )
 
 // ServeHTTP implements an http.Handler that answers RPC requests.

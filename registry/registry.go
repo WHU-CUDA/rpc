@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-type GeeRegistry struct {
+type WangxsRegistry struct {
 	timeout time.Duration
 	mu      sync.Mutex
 	servers map[string]*ServerItem
@@ -22,20 +22,20 @@ type ServerItem struct {
 }
 
 const (
-	defaultPath    = "/_geerpc/registry"
+	defaultPath    = "/_wangxsrpc_/registry"
 	defaultTimeout = time.Minute * 5
 )
 
-func New(timeout time.Duration) *GeeRegistry {
-	return &GeeRegistry{
+func New(timeout time.Duration) *WangxsRegistry {
+	return &WangxsRegistry{
 		servers: make(map[string]*ServerItem),
 		timeout: timeout,
 	}
 }
 
-var DefaultGeeRegistry = New(defaultTimeout)
+var DefaultWangxsRegistry = New(defaultTimeout)
 
-func (r *GeeRegistry) putServer(addr string) {
+func (r *WangxsRegistry) putServer(addr string) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	s := r.servers[addr]
@@ -46,7 +46,7 @@ func (r *GeeRegistry) putServer(addr string) {
 	}
 }
 
-func (r *GeeRegistry) aliveServers() []string {
+func (r *WangxsRegistry) aliveServers() []string {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	var alive []string
@@ -61,12 +61,12 @@ func (r *GeeRegistry) aliveServers() []string {
 	return alive
 }
 
-func (r *GeeRegistry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (r *WangxsRegistry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	switch req.Method {
 	case "GET":
-		w.Header().Set("X-Geerpc-Servers", strings.Join(r.aliveServers(), ","))
+		w.Header().Set("X-Wangxsrpc-Servers", strings.Join(r.aliveServers(), ","))
 	case "POST":
-		addr := req.Header.Get("X-Geerpc-Server")
+		addr := req.Header.Get("X-Wangxsrpc-Server")
 		if addr == "" {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -77,13 +77,13 @@ func (r *GeeRegistry) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func (r *GeeRegistry) HandleHTTP(registryPath string) {
+func (r *WangxsRegistry) HandleHTTP(registryPath string) {
 	http.Handle(registryPath, r)
 	log.Println("rpc registry path:", registryPath)
 }
 
 func HandleHTTP() {
-	DefaultGeeRegistry.HandleHTTP(defaultPath)
+	DefaultWangxsRegistry.HandleHTTP(defaultPath)
 }
 
 func Heartbeat(registry, addr string, duration time.Duration) {
@@ -109,7 +109,7 @@ func sendHeartbeat(registry, addr string) error {
 	log.Println(addr, "send heart beat to registry", registry)
 	httpClient := &http.Client{}
 	req, _ := http.NewRequest("POST", registry, nil)
-	req.Header.Set("X-Geerpc-Server", addr)
+	req.Header.Set("X-Wangxsrpc-Server", addr)
 	if _, err := httpClient.Do(req); err != nil {
 		log.Println("rpc server: heart beat err:", err)
 		return err

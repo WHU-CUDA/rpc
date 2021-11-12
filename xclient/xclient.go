@@ -3,10 +3,10 @@ package xclient
 
 import (
 	"context"
-	. "geerpc"
 	"io"
 	"reflect"
 	"sync"
+	. "wangxsrpc"
 )
 
 type XClient struct {
@@ -71,6 +71,12 @@ func (xc *XClient) Call(ctx context.Context, serviceMethod string, args, reply i
 	return xc.call(rpcAddr, ctx, serviceMethod, args, reply)
 }
 
+/**
+  *@ctx context.Context 上下文
+  *@serviceMethod string 方法名称
+  *@args interface{} 调用方法的参数
+  *@reply interface{} 返回参数
+**/
 func (xc *XClient) Broadcast(ctx context.Context, serviceMethod string, args, reply interface{}) error {
 	servers, err := xc.d.GetAll()
 	if err != nil {
