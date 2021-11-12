@@ -47,7 +47,7 @@ func TestDebugHTTP_ServeHTTP(t *testing.T) {
 		log.SetFlags(0)
 		ch := make(chan string)
 		go call(ch)
-		startServerDebug(ch)
+		//startServerDebug(ch)
 	})
 }
 
