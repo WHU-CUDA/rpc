@@ -1,5 +1,8 @@
 # WangxsRPC
 
+![](https://github.com/WHU-CUDA/rpc
+/workflows/go/badge.svg)
+
 #### Introduce
 A High Performance RPC with Golang
 #### 软件架构
